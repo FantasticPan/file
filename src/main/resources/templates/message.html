@@ -3,11 +3,26 @@
 <head>
     <meta charset="UTF-8" />
     <title>信息提示</title>
+    <link rel="icon" type="image/x-icon" href="/img/logo.png" />
+    <script type="text/javascript">
+        var time = 3; //时间,秒
+        function Redirect() {
+            window.location = "http://www.baidu.com";
+        }
+        var i = 0;
+        function dis() {
+            document.all.s.innerHTML = "还剩" + (time - i) + "秒";
+            i++;
+        }
+        timer = setInterval('dis()', 1000); //显示时间
+        timer = setTimeout('Redirect()', time * 1000); //跳转
+    </script>
 </head>
 <body>
-<br/><br/><br/>
+<br/><br/><br/><br/>
 <center>
     <h1><p th:text="${error}"></p></h1>
+    <h1><span id="s"></span></h1>
 </center>
 </body>
 </html>

@@ -7,6 +7,7 @@ import javax.persistence.*;
 
 /**
  * Created by FantasticPan on 2018/1/24.
+ * 对象类
  */
 @Entity
 @Table(name = "member")

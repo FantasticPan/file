@@ -6,6 +6,7 @@ import javax.persistence.*;
 
 /**
  * Created by FantasticPan on 2018/10/23.
+ * 文件配置类，配置上传路径、下载路径、文件名等参数
  */
 @Data
 @Entity

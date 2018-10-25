@@ -10,6 +10,7 @@ import java.sql.Timestamp;
 
 /**
  * Created by 李攀 on 2017/12/5.
+ * 文件类，保存上传文件的一些参数（上传日期、上传路径等）
  */
 @Entity
 @Table(name = "files")
