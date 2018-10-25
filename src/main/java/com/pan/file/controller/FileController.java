@@ -1,10 +1,11 @@
-package com.fantasticpan.file.controller;
+package com.pan.file.controller;
 
-import com.fantasticpan.file.entity.Files;
-import com.fantasticpan.file.entity.Member;
-import com.fantasticpan.file.repository.FileRepository;
-import com.fantasticpan.file.repository.MemberRepository;
-import com.fantasticpan.file.utils.FileUtil;
+import com.pan.file.entity.Files;
+import com.pan.file.entity.Member;
+import com.pan.file.repository.ConfigurationRepository;
+import com.pan.file.repository.FileRepository;
+import com.pan.file.repository.MemberRepository;
+import com.pan.file.utils.FileUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,15 +35,16 @@ import java.util.UUID;
 public class FileController {
 
     @Autowired
-    FileRepository fileRepository;
-
+    private FileRepository fileRepository;
     @Autowired
-    MemberRepository memberRepository;
+    private MemberRepository memberRepository;
+    @Autowired
+    private ConfigurationRepository configurationRepository;
 
     /**
      * 带表单参数的文件上传
      */
-    @RequestMapping(value = "/formfile", method = RequestMethod.POST)
+    @RequestMapping(value = "/formFile", method = RequestMethod.POST)
     @ResponseBody
     public ModelAndView formUploadFile(HttpServletRequest request, HttpServletResponse response) throws UnsupportedEncodingException {
 
@@ -50,67 +52,93 @@ public class FileController {
         response.setCharacterEncoding("utf-8");
         response.setContentType("text/html;charset=utf-8");
 
+        /*
+		或者方法头这样写：
+		单文件
+	    public ModelAndView formUploadFile(@RequestParam(value = "file") MultipartFile multipartFile) {}
+		多文件
+	    public ModelAndView formUploadFile(@RequestParam(value = "file") MultipartFile[] multipartFile) {}
+		*/
+
         //List<MultipartFile> files = ((MultipartHttpServletRequest)request).getFiles("files");
         //for (int i = 0;i<files.size();i++) {
         //    MultipartFile multipartFile = files.get(i);
         //    String file = multipartFile.getName();
         //}
 
+        //单文件上传
         MultipartFile multipartFile = ((MultipartHttpServletRequest) request).getFile("file");
+        //多文件上传
+        //MultipartFile multipartFile = multipartRequestgetFiles("file").get(0);
 
+        //获取表单参数
         String username = request.getParameter("username");
         String password = request.getParameter("password");
 
+        //生成Member对象，存入数据库
         Member member = new Member(username, password);
 
-        Long length = multipartFile.getSize();//返回的是字节，1M=1024KB=1048576字节 1KB=1024Byte
+        //返回的是字节，1M=1024KB=1048576字节 1KB=1024Byte
+        Long length = multipartFile.getSize();
         String fileName = multipartFile.getOriginalFilename();
-        String suffix = fileName.substring(fileName.lastIndexOf(".")).toLowerCase().trim();//文件后缀名
-        //String prefix = fileName.substring(0,fileName.lastIndexOf("."));//文件后缀名
+        //获取文件后缀名
+        String suffix = fileName.substring(fileName.lastIndexOf(".")).toLowerCase().trim();
+        //获取文件后缀名
+        //String prefix = fileName.substring(0,fileName.lastIndexOf("."));
 
-        String fileType = ".txt,.docx,.doc";
+        //指定符合要求的后缀
+        //String fileType = ".txt,.docx,.doc";
+        String fileType = configurationRepository.findUploadFileType(1);
+        //将字符串通过指定符号转变为数组
         //String[] typeArray = fileType.split(",");
 
-        String error[] = {"文件内容为空 ！", "文件大小限制1M ！", "文件后缀名有误 ！", "提交成功！", "提交失败，请与工作人员联系"};
-
+        //String information[] = {"文件内容为空 ！", "文件大小限制1M ！", "文件后缀名有误 ！", "提交成功！", "提交失败，请与工作人员联系"};
+        String tips = configurationRepository.findTips(1);
+        String information[] = tips.split(",");
         ModelAndView mav = new ModelAndView();
 
         if (multipartFile.isEmpty()) {
             mav.setViewName("message");
-            mav.addObject("error", error[0]);
+            mav.addObject("error", information[0]);
             return mav;
         } else if (length > 1048576) {
             mav.setViewName("message");
-            mav.addObject("error", error[1]);
+            mav.addObject("error", information[1]);
             return mav;
         } else if (!Arrays.asList(fileType.split(",")).contains(suffix)) {
             mav.setViewName("message");
-            mav.addObject("error", error[2]);
+            mav.addObject("error", information[2]);
             return mav;
         }
 
         Files files = new Files();
-        //String filePath = "/file/UploadFiles" + "/" + UUID.randomUUID() + "/";
+        //加上UUID，防止路径重复
+        //String filePath = "/file/uploadFiles" + "/" + UUID.randomUUID() + "/";
         //String filePath = request.getSession().getServletContext().getRealPath("/") + "upload/";
-        String filePath = "F:\\文件";
+        //String filePath = "d:/uploadFies" + "/" + UUID.randomUUID() + "/";
+        String uploadFilePath = configurationRepository.findUploadFilePath(1); //eg：windows:D:/uploadFies Linux:/file/uploadFiles
+        String filePath = uploadFilePath + "/" + UUID.randomUUID() + "/";
         String fileUrl = filePath + fileName;
         files.setName(fileName);
         files.setUrl(fileUrl);
         files.setDate(new Timestamp(System.currentTimeMillis()));
 
         try {
+            //调用上传方法
             FileUtil.uploadFile(filePath, fileName, multipartFile);
+            //数据库保存文件的存储路径
             fileRepository.save(files);
+
             memberRepository.save(member);
 
             mav.setViewName("message");
-            mav.addObject("error", error[3]);
+            mav.addObject("error", information[3]);
             return mav;
         } catch (Exception e) {
             e.printStackTrace();
 
             mav.setViewName("message");
-            mav.addObject("error", error[4]);
+            mav.addObject("error", information[4]);
             return mav;
         }
     }
@@ -125,32 +153,39 @@ public class FileController {
 
         Long length = multipartFile.getSize();//返回的是字节，1M=1024KB=1048576字节 1KB=1024Byte
         String fileName = multipartFile.getOriginalFilename();
-        String suffix = fileName.substring(fileName.lastIndexOf(".")).toLowerCase().trim();//文件后缀名
-        //String prefix = fileName.substring(0,fileName.lastIndexOf("."));//文件后缀名
+        //获取文件后缀名
+        String suffix = fileName.substring(fileName.lastIndexOf(".")).toLowerCase().trim();
+        //获取文件后缀名
+        //String prefix = fileName.substring(0,fileName.lastIndexOf("."));
 
-        String fileType = ".txt,.docx,.doc";
+        //String fileType = ".txt,.docx,.doc";
         //String[] typeArray = fileType.split(",");
+        String fileType = configurationRepository.findUploadFileType(1);
 
-        String error[] = {"文件内容为空 ！", "文件大小限制1M ！", "文件后缀名有误 ！", "提交成功！", "提交失败，请与工作人员联系"};
+        String tips = configurationRepository.findTips(1);
+        //String information[] = {"文件内容为空 ！", "文件大小限制1M ！", "文件后缀名有误 ！", "提交成功！", "提交失败，请与工作人员联系"};
+        String information[] = tips.split(",");
 
         ModelAndView mav = new ModelAndView();
 
         if (multipartFile.isEmpty()) {
             mav.setViewName("message");
-            mav.addObject("error", error[0]);
+            mav.addObject("error", information[0]);
             return mav;
         } else if (length > 1048576) {
             mav.setViewName("message");
-            mav.addObject("error", error[1]);
+            mav.addObject("error", information[1]);
             return mav;
         } else if (!Arrays.asList(fileType.split(",")).contains(suffix)) {
             mav.setViewName("message");
-            mav.addObject("error", error[2]);
+            mav.addObject("error", information[2]);
             return mav;
         }
 
         Files files = new Files();
-        String filePath = "/file/UploadFiles" + "/" + UUID.randomUUID() + "/";
+        String uploadFilePath = configurationRepository.findUploadFilePath(1);
+        String filePath = uploadFilePath + "/" + UUID.randomUUID() + "/";
+        //String filePath = "d:/uploadFies" + "/" + UUID.randomUUID() + "/";
         //String filePath = request.getSession().getServletContext().getRealPath("/") + "upload/";
         String fileUrl = filePath + fileName;
         files.setName(fileName);
@@ -162,13 +197,13 @@ public class FileController {
             fileRepository.save(files);
 
             mav.setViewName("message");
-            mav.addObject("error", error[3]);
+            mav.addObject("error", information[3]);
             return mav;
         } catch (Exception e) {
             e.printStackTrace();
 
             mav.setViewName("message");
-            mav.addObject("error", error[4]);
+            mav.addObject("error", information[4]);
             return mav;
         }
     }
@@ -177,8 +212,12 @@ public class FileController {
     @ResponseBody
     public void downloadFile(HttpServletResponse response) {
 
-        String fileName = "下学期公式表.doc";
-        String filePath = "/file/";
+        //String fileName = "下学期公式表.doc";
+        String fileName = configurationRepository.findDownloadFileName(1);
+        //String filePath = "/file/";
+        //String filePath = "D:\\file\\";
+        //String filePath = "D:/file/";
+        String filePath = configurationRepository.findDownLoadFilePath(1);
         File file = new File(filePath, fileName);
 
         try {
@@ -200,8 +239,11 @@ public class FileController {
 
         List<Files> filesList = fileRepository.findAll();
 
-        String zipName = "file.zip";
-        String outPath = "/file/";
+        //String zipName = "file.zip";
+        //String outPath = "/file/";
+        //String outPath = "D:/file/";
+        String outPath = configurationRepository.findDownLoadFilePath(1);
+        String zipName = configurationRepository.findDownloadZipFileName(1);
         File zipPath = new File(outPath, zipName);//使用IO的File根据路径获取文件
 
         try {

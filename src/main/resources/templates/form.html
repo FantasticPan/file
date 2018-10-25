@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>file</title>
+</head>
+<body>
+<!--文件上传-->
+<form action="/submit" method="post" enctype="multipart/form-data">
+    <input type="file" name="file"/><br/>
+    <button type="submit">提交</button>
+</form>
+<br/><br/>
+<form action="/formFile" method="post" enctype="multipart/form-data" onsubmit="return validate()">
+
+    <input type="file" name="file"/><br/>
+    名字：<input type="text" name="username" /><br/>
+    密码：<input type="password" name="password" /><br/>
+    <input type="submit" name="submit" value="提交"/>
+</form>
+<br/><br/>
+<a href="/fileDownload">下载文件</a><br/>
+<a href="/zipDownload">压缩文件下载</a>
+</body>
+</html>

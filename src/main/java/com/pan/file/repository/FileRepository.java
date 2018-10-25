@@ -1,6 +1,6 @@
-package com.fantasticpan.file.repository;
+package com.pan.file.repository;
 
-import com.fantasticpan.file.entity.Files;
+import com.pan.file.entity.Files;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**

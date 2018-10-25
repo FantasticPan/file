@@ -1,12 +1,9 @@
-package com.fantasticpan.file.entity;
+package com.pan.file.entity;
 
 import lombok.Getter;
 import lombok.Setter;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 /**
  * Created by FantasticPan on 2018/1/24.
@@ -18,7 +15,7 @@ import javax.persistence.Table;
 public class Member {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     String username;
